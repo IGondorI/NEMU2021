@@ -15,16 +15,29 @@ enum { R_AL, R_CL, R_DL, R_BL, R_AH, R_CH, R_DH, R_BH };
  */
 
 typedef struct {
-     struct {
-		uint32_t _32;
-		uint16_t _16;
-		uint8_t _8[2];
-     } gpr[8];
+    union {
+		// 第一层union可让寄存器有两种访问方式，下标访问 和 名称访问
+
+		union {  //下标访问
+			uint32_t _32;  //三十二位寄存器
+			uint16_t _16;  //十六位寄存器
+			uint8_t _8[2]; //写为数组的原因是 9~16 位也是可访问的寄存器
+		} gpr[8]; //一共 8 个三十二位寄存器
+
+		struct {  //名称访问
+			uint32_t eax;
+			uint32_t ecx;
+			uint32_t edx;
+			uint32_t ebx;
+			uint32_t esp;
+			uint32_t ebp;
+			uint32_t esi;
+			uint32_t edi;
+		};
+	};
 
      /* Do NOT change the order of the GPRs' definitions. */
-
-     uint32_t eax, ecx, edx, ebx, esp, ebp, esi, edi;
-
+	 
      swaddr_t eip;
      
      union {

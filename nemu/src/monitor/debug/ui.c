@@ -7,6 +7,10 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 
+#include <ctype.h>
+#include <errno.h>
+#include <stdint.h>
+
 void cpu_exec(uint32_t);
 
 /* We use the `readline' library to provide more flexibility to read from stdin. */
@@ -40,6 +44,62 @@ static int cmd_help(char *args);
 
 static int cmd_p(char *args);	//表达式求值
 
+static int cmd_si(char *args) {
+    uint32_t n = 1;
+
+    if(args != NULL) {
+        char *start = args;
+        char *end;
+        unsigned long value;
+
+        /* 跳过参数开头的空白字符 */
+        while(isspace((unsigned char)*start)) {
+            start ++;
+        }
+
+        /*
+         * si 后面没有有效参数，或者参数是负数。
+         * strtoul() 对负数的处理比较特殊，所以这里提前拒绝。
+         */
+        if(*start == '\0' || *start == '-') {
+            printf("Usage: si [N]\n");
+            return 0;
+        }
+
+        errno = 0;
+
+        /* 按十进制把字符串转换成 unsigned long */
+        value = strtoul(start, &end, 10);
+
+        /* 跳过数字后面的空白字符 */
+        while(isspace((unsigned char)*end)) {
+            end ++;
+        }
+
+        /*
+         * start == end：一个数字都没有读取到
+         * *end != '\0'：数字后面还有非法字符
+         * errno == ERANGE：数字太大，发生溢出
+         * value == 0：执行 0 条指令没有意义
+         * value > UINT32_MAX：超出 cpu_exec() 参数范围
+         */
+        if(start == end ||
+           *end != '\0' ||
+           errno == ERANGE ||
+           value == 0 ||
+           value > UINT32_MAX) {
+            printf("Invalid instruction count: %s\n", args);
+            printf("Usage: si [N]\n");
+            return 0;
+        }
+
+        n = (uint32_t)value;
+    }
+
+    cpu_exec(n);
+    return 0;
+}
+
 static struct {
 	char *name;
 	char *description;
@@ -50,6 +110,7 @@ static struct {
 	{ "q", "Exit NEMU", cmd_q },
 
 	/* TODO: Add more commands */
+	{ "si", "Step one or N instructions", cmd_si },
 	{ "p", "Evaluate an expression", cmd_p}
 
 };

@@ -38,6 +38,8 @@ static int cmd_q(char *args) {
 
 static int cmd_help(char *args);
 
+static int cmd_p(char *args);	//表达式求值
+
 static struct {
 	char *name;
 	char *description;
@@ -48,6 +50,7 @@ static struct {
 	{ "q", "Exit NEMU", cmd_q },
 
 	/* TODO: Add more commands */
+	{ "p", "Evaluate an expression", cmd_p}
 
 };
 
@@ -74,6 +77,27 @@ static int cmd_help(char *args) {
 		printf("Unknown command '%s'\n", arg);
 	}
 	return 0;
+}
+
+static int cmd_p(char *args) {
+    bool success;
+    uint32_t value;
+
+    if(args == NULL) {
+        printf("Usage: p EXPR\n");
+        return 0;
+    }
+
+    value = expr(args, &success);
+
+    if(success) {
+        printf("%u (0x%08x)\n", value, value);
+    }
+    else {
+        printf("Bad expression\n");
+    }
+
+    return 0;
 }
 
 void ui_mainloop() {

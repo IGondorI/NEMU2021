@@ -100,6 +100,103 @@ static int cmd_si(char *args) {
     return 0;
 }
 
+static int cmd_info(char *args) {
+	int i;
+
+	if(args == NULL) {
+		printf("Usage: info r\n");
+		return 0;
+	}
+
+	while(isspace((unsigned char)*args)) {
+		args ++;
+	}
+
+	if(strcmp(args, "r") != 0) {
+		printf("Unknown info target '%s'\n", args);
+		printf("Usage: info r\n");
+		return 0;
+	}
+
+	printf("%-8s %-12s %s\n", "register", "hex", "decimal");
+	for(i = 0; i < 8; i ++) {
+		printf("%-8s 0x%08x   %u\n", regsl[i], reg_l(i), reg_l(i));
+	}
+	printf("%-8s 0x%08x   %u\n", "eip", cpu.eip, cpu.eip);
+	printf("%-8s 0x%08x   %u\n", "eflags", cpu.eflags.val,
+			cpu.eflags.val);
+
+	return 0;
+}
+
+static int cmd_x(char *args) {
+	char *count_start;
+	char *expr_start;
+	unsigned long count;
+	unsigned long i;
+	uint32_t address;
+	bool success;
+
+	if(args == NULL) {
+		printf("Usage: x N EXPR\n");
+		return 0;
+	}
+
+	count_start = args;
+	while(isspace((unsigned char)*count_start)) {
+		count_start ++;
+	}
+
+	if(*count_start == '\0' || *count_start == '-') {
+		printf("Usage: x N EXPR\n");
+		return 0;
+	}
+
+	errno = 0;
+	count = strtoul(count_start, &expr_start, 10);
+
+	/* N 后面必须先出现空白，随后才是地址表达式。 */
+	if(count_start == expr_start ||
+	   errno == ERANGE ||
+	   count == 0 ||
+	   count > UINT32_MAX ||
+	   !isspace((unsigned char)*expr_start)) {
+		printf("Invalid scan count\n");
+		printf("Usage: x N EXPR\n");
+		return 0;
+	}
+
+	while(isspace((unsigned char)*expr_start)) {
+		expr_start ++;
+	}
+	if(*expr_start == '\0') {
+		printf("Missing address expression\n");
+		printf("Usage: x N EXPR\n");
+		return 0;
+	}
+
+	address = expr(expr_start, &success);
+	if(!success) {
+		printf("Bad address expression\n");
+		return 0;
+	}
+
+	/* 当前 NEMU 尚未实现地址转换，软件地址会直接映射到物理内存。 */
+	if(address > HW_MEM_SIZE - 4 || count > (HW_MEM_SIZE - address) / 4) {
+		printf("Memory range is out of bound\n");
+		return 0;
+	}
+
+	for(i = 0; i < count; i ++) {
+		swaddr_t current = address + i * 4;
+		uint32_t value = swaddr_read(current, 4);
+
+		printf("0x%08x: 0x%08x\n", current, value);
+	}
+
+	return 0;
+}
+
 static struct {
 	char *name;
 	char *description;
@@ -111,7 +208,9 @@ static struct {
 
 	/* TODO: Add more commands */
 	{ "si", "Step one or N instructions", cmd_si },
-	{ "p", "Evaluate an expression", cmd_p}
+	{ "info", "Print register information: info r", cmd_info },
+	{ "x", "Scan memory: x N EXPR", cmd_x },
+	{ "p", "Evaluate an expression", cmd_p }
 
 };
 
@@ -164,6 +263,9 @@ static int cmd_p(char *args) {
 void ui_mainloop() {
 	while(1) {
 		char *str = rl_gets();
+		if(str == NULL) {
+			return;
+		}
 		char *str_end = str + strlen(str);
 
 		/* extract the first token as the command */

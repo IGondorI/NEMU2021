@@ -40,6 +40,7 @@ static struct rule {
 	{"==",                             EQ},
 	{"!=",                             NEQ},
 	{"&&",                             AND},
+	{"!",                              '!'},
 	{"\\|\\|",                       OR},
 
 	{"\\+",                           '+'},
@@ -357,6 +358,9 @@ static uint32_t eval(int p, int q, bool *success) {
 	}
 
 	/* 没有二元主运算符时，只允许前缀一元运算符。 */
+	if(tokens[p].type == '!') {
+		return !eval(p + 1, q, success);
+	}
 	if(tokens[p].type == NEG) {
 		return -eval(p + 1, q, success);
 	}

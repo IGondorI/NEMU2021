@@ -1,5 +1,6 @@
 #include "monitor/watchpoint.h"
 #include "monitor/expr.h"
+#include "cpu/reg.h"
 
 #define NR_WP 32
 
@@ -117,7 +118,7 @@ bool check_watchpoints(void) {
 			continue;
 		}
 		if(value != wp->value) {
-			printf("Watchpoint %d triggered: %s\n", wp->NO, wp->expression);
+			printf("Hint watchpoint %d at address 0x%08x\n", wp->NO, cpu.eip);
 			printf("Old value = %u (0x%08x)\n", wp->value, wp->value);
 			printf("New value = %u (0x%08x)\n", value, value);
 			wp->value = value;

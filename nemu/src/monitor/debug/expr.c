@@ -365,6 +365,11 @@ static uint32_t eval(int p, int q, bool *success) {
 		if(!*success) {
 			return 0;
 		}
+		if(addr > HW_MEM_SIZE - 4) {
+			printf("dereference address 0x%08x is out of bounds for a 4-byte read\n", addr);
+			*success = false;
+			return 0;
+		}
 		return swaddr_read(addr, 4);
 	}
 

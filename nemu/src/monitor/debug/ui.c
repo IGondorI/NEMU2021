@@ -10,6 +10,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <stdint.h>
+#include <limits.h>
 
 void cpu_exec(uint32_t);
 
@@ -104,7 +105,7 @@ static int cmd_info(char *args) {
 	int i;
 
 	if(args == NULL) {
-		printf("Usage: info r\n");
+		printf("Usage: info r|w\n");
 		return 0;
 	}
 
@@ -112,9 +113,14 @@ static int cmd_info(char *args) {
 		args ++;
 	}
 
+	if(strcmp(args, "w") == 0) {
+		print_watchpoints();
+		return 0;
+	}
+
 	if(strcmp(args, "r") != 0) {
 		printf("Unknown info target '%s'\n", args);
-		printf("Usage: info r\n");
+		printf("Usage: info r|w\n");
 		return 0;
 	}
 
@@ -197,6 +203,33 @@ static int cmd_x(char *args) {
 	return 0;
 }
 
+static int cmd_w(char *args) {
+	if(args == NULL) {
+		printf("Usage: w EXPR\n");
+		return 0;
+	}
+	add_watchpoint(args);
+	return 0;
+}
+
+static int cmd_d(char *args) {
+	char *end;
+	unsigned long number;
+
+	if(args == NULL || !isdigit((unsigned char)*args)) {
+		printf("Usage: d N (non-negative decimal watchpoint number)\n");
+		return 0;
+	}
+	errno = 0;
+	number = strtoul(args, &end, 10);
+	if(errno == ERANGE || *end != '\0' || number > INT_MAX) {
+		printf("Invalid watchpoint number\n");
+		return 0;
+	}
+	delete_watchpoint((int)number);
+	return 0;
+}
+
 static struct {
 	char *name;
 	char *description;
@@ -208,8 +241,10 @@ static struct {
 
 	/* TODO: Add more commands */
 	{ "si", "Step one or N instructions", cmd_si },
-	{ "info", "Print register information: info r", cmd_info },
+	{ "info", "Print registers or watchpoints: info r|w", cmd_info },
 	{ "x", "Scan memory: x N EXPR", cmd_x },
+	{ "w", "Create a watchpoint: w EXPR", cmd_w },
+	{ "d", "Delete a watchpoint: d N", cmd_d },
 	{ "p", "Evaluate an expression", cmd_p }
 
 };
@@ -218,7 +253,7 @@ static struct {
 
 static int cmd_help(char *args) {
 	/* extract the first argument */
-	char *arg = strtok(NULL, " ");
+	char *arg = args;
 	int i;
 
 	if(arg == NULL) {
@@ -267,15 +302,21 @@ void ui_mainloop() {
 			return;
 		}
 		char *str_end = str + strlen(str);
+		while(str_end > str && isspace((unsigned char)str_end[-1])) {
+			*--str_end = 0;
+		}
 
 		/* extract the first token as the command */
-		char *cmd = strtok(str, " ");
+		char *cmd = strtok(str, " \t");
 		if(cmd == NULL) { continue; }
 
 		/* treat the remaining string as the arguments,
 		 * which may need further parsing
 		 */
 		char *args = cmd + strlen(cmd) + 1;
+		while(args < str_end && isspace((unsigned char)*args)) {
+			args ++;
+		}
 		if(args >= str_end) {
 			args = NULL;
 		}

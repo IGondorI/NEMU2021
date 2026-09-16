@@ -6,6 +6,7 @@
 #include "data-mov/cltd.h"
 #include "data-mov/stack.h"
 
+#include "arith/add.h"
 #include "arith/adc.h"
 #include "arith/dec.h"
 #include "arith/inc.h"
@@ -35,6 +36,7 @@
 #include "string/rep.h"
 #include "string/scas.h"
 #include "string/stos.h"
+#include "string/lods.h"
 #include "string/movs.h"
 
 #include "misc/misc.h"

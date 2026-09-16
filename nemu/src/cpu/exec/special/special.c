@@ -40,3 +40,35 @@ make_helper(nemu_trap) {
 	return 1;
 }
 
+
+make_helper(int_i_b) {
+	uint8_t vector = instr_fetch(eip + 1, 1);
+
+	if(vector != 0x80) {
+		panic("unsupported software interrupt 0x%02x", vector);
+	}
+
+	/* The standalone testcase uses Linux i386 SYS_write directly. */
+	if(cpu.eax == 4) {
+		FILE *stream = cpu.ebx == 2 ? stderr : stdout;
+		uint32_t i;
+
+		if((cpu.ebx != 1 && cpu.ebx != 2) ||
+				cpu.ecx > HW_MEM_SIZE || cpu.edx > HW_MEM_SIZE - cpu.ecx) {
+			cpu.eax = (uint32_t)-1;
+		}
+		else {
+			for(i = 0; i < cpu.edx; i ++) {
+				fputc(swaddr_read(cpu.ecx + i, 1), stream);
+			}
+			fflush(stream);
+			cpu.eax = cpu.edx;
+		}
+	}
+	else {
+		panic("unsupported int 0x80 system call %u", cpu.eax);
+	}
+
+	print_asm("int $0x%x", vector);
+	return 2;
+}

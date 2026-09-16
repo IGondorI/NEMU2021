@@ -23,3 +23,20 @@ make_helper(lea) {
 	print_asm("leal %s,%%%s", op_src->str, regsl[m.reg]);
 	return 1 + len;
 }
+
+make_helper(leave_v) {
+	int width = ops_decoded.is_operand_size_16 ? 2 : 4;
+	uint32_t value;
+
+	cpu.esp = cpu.ebp;
+	value = swaddr_read(cpu.esp, width);
+	cpu.esp += width;
+	if(width == 2) {
+		reg_w(R_BP) = value;
+	}
+	else {
+		cpu.ebp = value;
+	}
+	print_asm("leave");
+	return 1;
+}

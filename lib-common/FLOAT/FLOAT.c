@@ -1,8 +1,9 @@
 #include "FLOAT.h"
+#include <stdint.h>
 
 FLOAT F_mul_F(FLOAT a, FLOAT b) {
-	nemu_assert(0);
-	return 0;
+	int64_t product = (int64_t)a * b;
+	return product >> 16;
 }
 
 FLOAT F_div_F(FLOAT a, FLOAT b) {
@@ -24,8 +25,15 @@ FLOAT F_div_F(FLOAT a, FLOAT b) {
 	 * out another way to perform the division.
 	 */
 
-	nemu_assert(0);
-	return 0;
+	int32_t quotient, remainder;
+	uint32_t dividend_low = (uint32_t)a << 16;
+	int32_t dividend_high = a >> 16;
+
+	asm volatile ("idivl %2"
+			: "=a"(quotient), "=d"(remainder)
+			: "r"(b), "a"(dividend_low), "d"(dividend_high));
+
+	return quotient;
 }
 
 FLOAT f2F(float a) {
@@ -39,13 +47,39 @@ FLOAT f2F(float a) {
 	 * performing arithmetic operations on it directly?
 	 */
 
-	nemu_assert(0);
-	return 0;
+	union {
+		float f;
+		uint32_t u;
+	} value = { .f = a };
+	uint32_t sign = value.u >> 31;
+	uint32_t exponent = (value.u >> 23) & 0xff;
+	uint32_t fraction = (value.u & 0x7fffff) | 0x800000;
+	uint32_t magnitude;
+	int shift;
+
+	/* A denormalized IEEE-754 float is too small to be represented in
+	 * Q16.16, so it becomes zero after truncation. */
+	if(exponent == 0) {
+		return 0;
+	}
+
+	/* value * 2^16 = fraction * 2^(exponent - 134). */
+	shift = 134 - exponent;
+	if(shift >= 32) {
+		magnitude = 0;
+	}
+	else if(shift >= 0) {
+		magnitude = fraction >> shift;
+	}
+	else {
+		magnitude = fraction << -shift;
+	}
+
+	return sign ? -(FLOAT)magnitude : (FLOAT)magnitude;
 }
 
 FLOAT Fabs(FLOAT a) {
-	nemu_assert(0);
-	return 0;
+	return a < 0 ? -a : a;
 }
 
 /* Functions below are already implemented */

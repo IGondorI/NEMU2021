@@ -1,6 +1,6 @@
 SECTIONS
 {
-	. = 0x100000;
+    . = 0x800000;
 	.text : 
 	{
 		obj/testcase/start.o(.text)

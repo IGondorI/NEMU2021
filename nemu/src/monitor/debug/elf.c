@@ -81,3 +81,22 @@ void load_elf_tables(int argc, char *argv[]) {
 	fclose(fp);
 }
 
+
+bool find_object_symbol(const char *name, uint32_t *address) {
+	int i;
+
+	if(name == NULL || address == NULL || symtab == NULL || strtab == NULL) {
+		return false;
+	}
+
+	for(i = 0; i < nr_symtab_entry; i ++) {
+		if(ELF32_ST_TYPE(symtab[i].st_info) == STT_OBJECT &&
+				symtab[i].st_shndx != SHN_UNDEF &&
+				strcmp(strtab + symtab[i].st_name, name) == 0) {
+			*address = symtab[i].st_value;
+			return true;
+		}
+	}
+
+	return false;
+}

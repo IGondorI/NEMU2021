@@ -8,11 +8,14 @@
 #include <errno.h>
 #include <stdlib.h>
 
+bool find_object_symbol(const char *name, uint32_t *address);
+
 enum {
 	NOTYPE = 256,  //空格
 	HEX,           //十六进制数
 	DECIMAL,       //十进制数
 	REG,           //寄存器
+	VARIABLE,      //ELF变量名
 
 	// 逻辑运算符
 	EQ,            //等于
@@ -35,6 +38,7 @@ static struct rule {
 	{"0[xX][0-9a-fA-F]+",             HEX},     //十六进制数
 	{"[0-9]+",                         DECIMAL}, //十进制数
 	{"\\$[a-zA-Z][a-zA-Z0-9]*",      REG},     //寄存器
+	{"[a-zA-Z_][a-zA-Z0-9_]*",         VARIABLE},//变量名
 
 	// 多字符运算符放在单字符运算符前面
 	{"==",                             EQ},
@@ -85,7 +89,8 @@ static int nr_token;
 /* 判断一个 token 能否作为普通操作数的结尾。这个信息用于区分
  * 乘法和解引用、减法和负号。 */
 static bool is_operand_end(int type) {
-	return type == HEX || type == DECIMAL || type == REG || type == ')';
+	return type == HEX || type == DECIMAL || type == REG ||
+		type == VARIABLE || type == ')';
 }
 
 /* `*' 和 `-' 既可以是二元运算符，也可以是一元运算符。
@@ -307,6 +312,16 @@ static uint32_t eval(int p, int q, bool *success) {
 				return parse_number(&tokens[p], 16, success);
 			case REG:
 				return read_register(tokens[p].str + 1, success);
+			case VARIABLE: {
+				uint32_t address;
+
+				if(!find_object_symbol(tokens[p].str, &address)) {
+					printf("unknown variable '%s'\n", tokens[p].str);
+					*success = false;
+					return 0;
+				}
+				return address;
+			}
 			default:
 				printf("token '%s' is not an operand\n", tokens[p].str);
 				*success = false;

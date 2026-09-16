@@ -4,6 +4,7 @@
 #include "data-mov/xchg.h"
 #include "data-mov/movext.h"
 #include "data-mov/cltd.h"
+#include "data-mov/stack.h"
 
 #include "arith/adc.h"
 #include "arith/dec.h"
@@ -15,7 +16,10 @@
 #include "arith/div.h"
 #include "arith/sbb.h"
 #include "arith/sub.h"
+#include "arith/cmp.h"
 
+#include "control/call.h"
+#include "control/jcc.h"
 #include "control/jmp.h"
 
 #include "logic/and.h"
@@ -26,6 +30,7 @@
 #include "logic/shl.h"
 #include "logic/shr.h"
 #include "logic/shrd.h"
+#include "logic/test.h"
 
 #include "string/rep.h"
 #include "string/scas.h"

@@ -84,9 +84,12 @@ void restart() {
 	/* Read the entry code into memory. */
 	load_entry();
 
-	/* Set the initial instruction pointer. */
-	cpu.eip = ENTRY_START;
+/* Set the initial instruction pointer. */
+cpu.eip = ENTRY_START;
 
-	/* Initialize DRAM. */
+/* i386 reserves bit 1 of EFLAGS and keeps it set. */
+cpu.eflags.val = 0x2;
+
+/* Initialize DRAM. */
 	init_ddr3();
 }
